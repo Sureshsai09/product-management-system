@@ -10,7 +10,12 @@ import com.suresh.productapi.entity.Product;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    Page<Product> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
+    // Search products by name
+    List<Product> findByNameContainingIgnoreCase(String name);
 
+    // Search with pagination
+    Page<Product> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    // Filter by price range
     List<Product> findByPriceBetween(double minPrice, double maxPrice);
 }

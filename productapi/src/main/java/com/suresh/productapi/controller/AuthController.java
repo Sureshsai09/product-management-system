@@ -1,77 +1,45 @@
 package com.suresh.productapi.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
-import com.suresh.productapi.security.JwtUtil;
+import com.suresh.productapi.model.User;
+import com.suresh.productapi.repository.UserRepository;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
+    @Autowired
+    private UserRepository userRepository;
 
-    public AuthController(AuthenticationManager authenticationManager,
-                          JwtUtil jwtUtil) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    // 👤 REGISTER ONLY (for now)
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody User user) {
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok("User registered successfully");
     }
 
+    // 🔐 LOGIN (TEMP SIMPLE VERSION)
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody User request) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElse(null);
 
-        String token = jwtUtil.generateToken(request.getUsername());
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            return ResponseEntity.badRequest().body("Invalid username or password");
+        }
 
-        return ResponseEntity.ok(new AuthResponse(token));
-    }
-}
-
-class AuthRequest {
-
-    private String username;
-    private String password;
-
-    public AuthRequest() {}
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-}
-
-class AuthResponse {
-
-    private String token;
-
-    public AuthResponse(String token) {
-        this.token = token;
-    }
-
-    public String getToken() {
-        return token;
+        return ResponseEntity.ok("Login successful");
     }
 }
